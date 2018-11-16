@@ -39,6 +39,10 @@ module.exports = class UM3 extends Module {
             this.log.info("Starting...");
 
             let authPromise = Promise.resolve();
+
+            if (!this.config.auth) {
+                this.config.auth = {id: "", key: ""};
+            }
             if (!this.config.auth.id || !this.config.auth.key) {
                 // Request new auth
                 authPromise = request(Object.assign(this.baseRequestOptions, {
@@ -49,8 +53,8 @@ module.exports = class UM3 extends Module {
                         user: "UM3Bot"
                     }
                 })).then((response) => {
-                    this.config.auth.id = response.body.id;
-                    this.config.auth.key = response.body.key;
+                    this.config.auth.id = response.id;
+                    this.config.auth.key = response.key;
 
                     // Writing config
                     App.saveModuleConfig(this.name, this.config);
@@ -109,9 +113,12 @@ module.exports = class UM3 extends Module {
                 return reject(new Error("Not authorized"));
             }
 
-            this.client.apis.Printer.get_printer_status().then((response) => {
+            request(Object.assign(this.baseRequestOptions, {
+                methon: "GET",
+                uri: this.config.baseUrl + "api/v1/printer/status",
+            })).then((response) => {
                 return resolve(response);
-            }, reject);
+            })
         })
     }
 
