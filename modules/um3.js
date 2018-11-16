@@ -7,16 +7,6 @@ const request = require('request-promise');
 
 module.exports = class UM3 extends Module {
 
-    static defaultConfig() {
-        return {
-            baseUrl: "<BASEURL>",
-            auth: {
-                id: "",
-                key: ""
-            }
-        }
-    }
-
     init() {
         return new Promise((resolve, reject) => {
             this.log.info("Initializing...");
