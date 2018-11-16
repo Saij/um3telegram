@@ -1,6 +1,6 @@
-(x) /status => Retrieves the current status of the printer
-(x) /image => Retrieves a photo of the camera
-(x) /led => Replies with keyboard
-(x) /led on => Switches the LED on
-(x) /led off => Switches the LED off
-(x) /color RGB => Sets LED to RGB value
+- [ ] /status => Retrieves the current status of the printer
+- [ ] /image => Retrieves a photo of the camera
+- [x] /led => Replies with keyboard
+- [ ] /led on => Switches the LED on
+- [ ] /led off => Switches the LED off
+- [ ] /color RGB => Sets LED to RGB value
