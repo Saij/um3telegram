@@ -119,7 +119,7 @@ module.exports = class UM3 extends Module {
             }
 
             if (state != 'on' && state != 'off') {
-                return reject(new Error('State ' + state + ' is not supported for LED control'));
+                return reject(new Error('State "' + state + '" is not supported for LED control'));
             }
 
             const brightness = state == 'on' ? 100 : 0;
