@@ -1,6 +1,8 @@
-- [ ] /status => Retrieves the current status of the printer
-- [ ] /image => Retrieves a photo of the camera
+- [ ] /status => Retrieves the current status of the printer (incl. photo)
 - [x] /led => Replies with keyboard
 - [ ] /led on => Switches the LED on
 - [ ] /led off => Switches the LED off
-- [ ] /color RGB => Sets LED to RGB value
+- [ ] /color #RRGGBB => Sets LED to RGB value
+- [ ] /color RR GG BB => Sets LED to RGB value (values can be hex or dez)
+- [ ] /watch <minutes> => Sends status every X minutes
+- [ ] /stopwatch => Stops a previous active watch timer
