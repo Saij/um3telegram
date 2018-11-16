@@ -11,6 +11,7 @@ const Tools = require('../lib/Tools');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
 const fs = require('fs');
+const request = require('request');
 
 module.exports = class Telegram extends Module {
 
@@ -25,7 +26,8 @@ module.exports = class Telegram extends Module {
             this.bot.command('led', (ctx) => this._handle(ctx, this.commandLed, true));
             this.bot.command('blink', (ctx) => this._handle(ctx, this.commandBlink, true));
             this.bot.command('color', (ctx) => this._handle(ctx, this.commandColor, true));
-            this.bot.command('video', (ctx) => this._handle(ctx, this.commandVideo, false));
+            this.bot.command('video', (ctx) => this._handle(ctx, this.commandVideo, true));
+            this.bot.command('photo', (ctx) => this._handle(ctx, this.commandPhoto, true));
 
             this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, this.actionLed, true));
             
@@ -163,6 +165,38 @@ module.exports = class Telegram extends Module {
         return App.modules.um3.blink(1, amount).then(() => {
             return;
         }, (err) => {
+            ctx.reply("An error occured: " + err.toString());
+            this.log.error(err.toString());
+        });
+    }
+
+    commandPhoto(ctx) {
+        let tmpFile;
+        return App.modules.um3.getPhotoURL().then((url) => {
+            tmpFile = App.config.dataPath + "/" + ctx.message.message_id + ".jpg";
+
+            return new Promise((resolve, reject) => {
+                const r = request(url).pipe(fs.createWriteStream(tmpFile));
+                r.on('error', (err) => {
+                    return reject(err);
+                });
+                r.on('close', () => {
+                    return resolve();
+                })
+            });
+        }).then(() => {
+            return ctx.replyWithPhoto({source: tmpFile})
+        }).then(() => {
+            return new Promise((resolve, reject) => {
+                fs.unlink(tmpFile, (err) => {
+                    if (err) {
+                        return reject(err);
+                    }
+
+                    return resolve();
+                });
+            })
+        }).catch((err) => {
             ctx.reply("An error occured: " + err.toString());
             this.log.error(err.toString());
         });

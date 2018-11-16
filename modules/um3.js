@@ -196,4 +196,15 @@ module.exports = class UM3 extends Module {
         })
     }
 
+    getPhotoURL() {
+        return new Promise((resolve, reject) => {
+            request(Object.assign(this.baseRequestOptions, {
+                method: "GET",
+                uri: this.config.baseUrl + "api/v1/camera/feed",
+            })).then((response) => {
+                return resolve(response.replace('?action=stream', '?action=snapshot'));
+            }, reject);
+        })
+    }
+
 };

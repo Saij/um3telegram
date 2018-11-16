@@ -8,5 +8,5 @@
 - [ ] /stopwatch => Stops a previous active watch timer
 - [x] /blink <amount> => Blinks X times with a frequenzy of 1 Hz
 - [x] /start => Starts Bot and returns user ID
-- [ ] /photo => Takes a photo of the camera
+- [x] /photo => Takes a photo of the camera
 - [x] /video <length> => Takes a video of X seconds and sends it
