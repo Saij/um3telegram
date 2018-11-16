@@ -1,8 +1,10 @@
 - [ ] /status => Retrieves the current status of the printer (incl. photo)
 - [x] /led => Replies with keyboard
-- [ ] /led on => Switches the LED on
-- [ ] /led off => Switches the LED off
+- [x] /led on => Switches the LED on
+- [x] /led off => Switches the LED off
 - [ ] /color #RRGGBB => Sets LED to RGB value
 - [ ] /color RR GG BB => Sets LED to RGB value (values can be hex or dez)
 - [ ] /watch <minutes> => Sends status every X minutes
 - [ ] /stopwatch => Stops a previous active watch timer
+- [x] /blink <amount> => Blinks X times with a frequenzy of 1 Hz
+- [x] /start => Starts Bot and returns user ID

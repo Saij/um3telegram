@@ -138,4 +138,31 @@ module.exports = class UM3 extends Module {
         });
     }
 
+    blink(frequency, amount) {
+        return new Promise((resolve, reject) => {
+            if (!this.authorized) {
+                return reject(new Error("Not authorized"));
+            }
+
+            if (isNaN(frequency) || !(frequency > 0)) {
+                return reject(new Error('Not a valid frequency provided!'));
+            }
+
+            if (isNaN(amount) || !(amount > 0)) {
+                return reject(new Error('Not a valid amount provided!'));
+            }
+
+            request(Object.assign(this.baseRequestOptions, {
+                method: "POST",
+                uri: this.config.baseUrl + "api/v1/printer/led/blink",
+                body: {
+                    frequency: frequency,
+                    count: amount
+                }
+            })).auth(this.config.auth.id, this.config.auth.key, false).then((response) => {
+                return resolve();
+            }, reject);
+        })
+    }
+
 };

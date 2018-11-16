@@ -1,1 +1,6 @@
-{"token":"<BOTTOKEN>"}
+{
+	"token": "<BOTTOKEN>",
+	"users": [
+		"<USERID>"
+	]
+}

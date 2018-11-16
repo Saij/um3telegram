@@ -1,1 +1,7 @@
-{"baseUrl":"<BASEURL>","auth":{"id":"","key":""}}
+{
+	"baseUrl": "<BASEURL>",
+	"auth": {
+		"id": "",
+		"key": ""
+	}
+}
