@@ -5,12 +5,15 @@
   "main": "index.js",
   "dependencies": {
     "bluebird": "^3.5.3",
+    "ffmpeg-static": "^2.3.0",
+    "fluent-ffmpeg": "^2.1.2",
     "merge": "^1.2.1",
     "moment": "^2.22.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "telegraf": "^3.25.0",
     "telegraf-command-parts": "^1.0.3",
+    "tmp": "0.0.33",
     "winston": "^2.2.0"
   },
   "devDependencies": {},

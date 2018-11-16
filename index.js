@@ -9,6 +9,7 @@ UM3Telegram.configure({
 	// PATHS
     rootPath: __dirname,
     configPath: __dirname + "/config",
+    dataPath: __dirname + "/data",
     logDir: __dirname + "/logs"
 });
 

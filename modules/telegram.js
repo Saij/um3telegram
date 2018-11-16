@@ -8,6 +8,9 @@ const commandParts = require('telegraf-command-parts');
 const Markup = require('telegraf/markup');
 const Extra = require('telegraf/extra');
 const Tools = require('../lib/Tools');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegStatic = require('ffmpeg-static');
+const fs = require('fs');
 
 module.exports = class Telegram extends Module {
 
@@ -22,6 +25,7 @@ module.exports = class Telegram extends Module {
             this.bot.command('led', (ctx) => this._handle(ctx, this.commandLed, true));
             this.bot.command('blink', (ctx) => this._handle(ctx, this.commandBlink, true));
             this.bot.command('color', (ctx) => this._handle(ctx, this.commandColor, true));
+            this.bot.command('video', (ctx) => this._handle(ctx, this.commandVideo, false));
 
             this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, this.actionLed, true));
             
@@ -162,6 +166,85 @@ module.exports = class Telegram extends Module {
             ctx.reply("An error occured: " + err.toString());
             this.log.error(err.toString());
         });
+    }
+
+    commandVideo(ctx, duration) {
+        if (isNaN(duration) || !(duration > 0)) {
+            return ctx.reply("Please specify the duration of the video (must be greate 0)! /video <duration>");
+        }
+
+        let currentMessage = "Creating video from stream";
+        let curDots = 1;
+        let interval;
+        let statusMsg;
+
+        const stopUpdateFunction = (msg) => {
+            clearTimeout(interval);
+            return this._updateMessage(ctx, statusMsg, msg);
+        }
+
+        return ctx.reply(Tools.addDots(currentMessage, curDots)).then((msg) => {
+            statusMsg = msg;
+            const timeoutFunction = () => {
+                curDots++;
+                if (curDots > 3) {
+                    curDots = 1;
+                }
+
+                this._updateMessage(ctx, statusMsg, Tools.addDots(currentMessage, curDots)).then(() => {
+                    interval = setTimeout(timeoutFunction, 1000);
+                }, (err) => {
+                    interval = setTimeout(timeoutFunction, 1000);
+                });
+            };
+
+            interval = setTimeout(timeoutFunction, 1000);
+
+            // now create ffmpeg and process video
+            return App.modules.um3.getStreamURL();
+        }).then((streamUrl) => {
+            return new Promise((resolve, reject) => {
+                const tmpFile = App.config.dataPath + "/" + statusMsg.message_id + ".mp4";
+                const convertProc = ffmpeg(streamUrl);
+                convertProc.setFfmpegPath(ffmpegStatic.path);
+                convertProc.videoCodec('libx264');
+                convertProc.noAudio();
+                convertProc.duration(duration);
+                convertProc.on('error', (err) => {
+                    return reject(err);
+                });
+                convertProc.on('end', () => {
+                    return resolve(tmpFile);
+                });
+                convertProc.save(tmpFile);
+            }).then((filename) => {
+                return ctx.replyWithVideo({source: filename}).then(() => {
+                    return new Promise((resolve, reject) => {
+                        fs.unlink(filename, (err) => {
+                            if (err) {
+                                return reject(err);
+                            }
+
+                            return resolve();
+                        });
+                    }).then(() => {
+                        return ctx.telegram.deleteMessage(statusMsg.chat.id, statusMsg.message_id);
+                    });
+                });
+            }, (err) => {
+                return stopUpdateFunction("Error: " + err.toString());
+            })
+        });
+    }
+
+    _updateMessage(ctx, msg, text) {
+        return ctx.telegram.editMessageText(
+            msg.chat.id,
+            msg.message_id,
+            undefined,
+            text,
+            undefined
+        )
     }
 
     actionLed(ctx, state) {
