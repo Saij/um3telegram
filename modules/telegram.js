@@ -5,13 +5,6 @@ const App = require('../lib/App');
 const Promise = require("bluebird");
 const Telegraf = require('telegraf');
 const commandParts = require('telegraf-command-parts');
-const Markup = require('telegraf/markup');
-const Extra = require('telegraf/extra');
-const Tools = require('../lib/Tools');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegStatic = require('ffmpeg-static');
-const fs = require('fs');
-const request = require('request');
 
 module.exports = class Telegram extends Module {
 
@@ -22,16 +15,16 @@ module.exports = class Telegram extends Module {
             this.bot = new Telegraf(this.config.token);
             this.bot.use(commandParts());
 
-            this.bot.command('status', (ctx) => this._handle(ctx, this.commandStatus, true));
-            this.bot.command('led', (ctx) => this._handle(ctx, this.commandLed, true));
-            this.bot.command('blink', (ctx) => this._handle(ctx, this.commandBlink, true));
-            this.bot.command('color', (ctx) => this._handle(ctx, this.commandColor, true));
-            this.bot.command('video', (ctx) => this._handle(ctx, this.commandVideo, true));
-            this.bot.command('photo', (ctx) => this._handle(ctx, this.commandPhoto, true));
+            this.bot.command('status', (ctx) => this._handle(ctx, require('./telegram/commands/status'), true));
+            this.bot.command('led', (ctx) => this._handle(ctx, require('./telegram/commands/led'), true));
+            this.bot.command('blink', (ctx) => this._handle(ctx, require('./telegram/commands/blink'), true));
+            this.bot.command('color', (ctx) => this._handle(ctx, require('./telegram/commands/color'), true));
+            this.bot.command('video', (ctx) => this._handle(ctx, require('./telegram/commands/video'), true));
+            this.bot.command('photo', (ctx) => this._handle(ctx, require('./telegram/commands/photo'), true));
 
-            this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, this.actionLed, true));
+            this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, require('./telegram/actions/led'), true));
             
-            this.bot.start((ctx) => this._handle(ctx, this.commandStart, false));
+            this.bot.start((ctx) => this._handle(ctx, require('./telegram/commands/start'), false));
 
             resolve(this);
         });
@@ -85,191 +78,7 @@ module.exports = class Telegram extends Module {
 
             return resolve(true);
         });
-    }
-
-    commandStart(ctx) {
-        const userId = ctx.from.id;
-
-        ctx.reply("Welcome to Ultimaker 3 Telegram Bot.\nYour user ID is " + userId + "\nPlease add it to the configuration file and secure your bot!");
-    }
-
-    commandStatus(ctx) {
-        return App.modules.um3.getStatus().then((status) => {
-            ctx.reply("Printer is currently: " + status);
-        }, (err) => {
-            ctx.reply("An error occured: " + err.toString());
-            this.log.error(err.toString());
-        });            
-    }
-
-    commandLed(ctx, state) {
-        if (state) {
-            state = state.toLowerCase();
-            if (state != 'on' && state != 'off') {
-                return ctx.reply("Not a valid LED state: " + state);
-            }
-
-            return App.modules.um3.toggleLED(state).then(() => {
-                return ctx.reply('LEDs turned ' + state);
-            }, (err) => {
-                this.log.error(err.toString());
-                return ctx.reply("An error occured: " + err.toString());
-            });
-        }
-
-        if (!state) {
-            // Reply with Keyboard
-            return ctx.reply('Turn LEDs on or off?', Extra.HTML().markup((m) => {
-                return m.inlineKeyboard([
-                    m.callbackButton('On', 'led on'),
-                    m.callbackButton('Off', 'led off')
-                ])
-            }));
-        }
-    }
-
-    commandColor(ctx, red, green, blue) {
-        const hexResult = Tools.hexToRgb(red);
-
-        if (!hexResult) {
-            red = parseInt(red);
-            green = parseInt(green);
-            blue = parseInt(blue);
-        }
-        
-        if (!hexResult && (isNaN(red) || isNaN(green) || isNaN(blue))) {
-            return ctx.reply("Please specify a hex color or three individual color values! /color RRGGBB - /color RR GG BB");
-        }
-
-        if (hexResult) {
-            red = hexResult.red;
-            green = hexResult.green;
-            blue = hexResult.blue;
-        }
-
-        const result = Tools.rgbToHsv(red, green, blue);
-
-        return App.modules.um3.color(result.hue * 100, result.saturation * 100, result.value * 100).then(() => {
-            return ctx.reply('Color changed');
-        }, (err) => {
-            this.log.error(err.toString());
-            return ctx.reply("An error occured: " + err.toString());
-        });
-    }
-
-    commandBlink(ctx, amount) {
-        if (isNaN(amount) || !(amount > 0)) {
-            return ctx.reply("Please specify the amount of blinks (must be greater 0)! /blink <amount>");
-        }
-
-        return App.modules.um3.blink(1, amount).then(() => {
-            return;
-        }, (err) => {
-            ctx.reply("An error occured: " + err.toString());
-            this.log.error(err.toString());
-        });
-    }
-
-    commandPhoto(ctx) {
-        let tmpFile;
-        return App.modules.um3.getPhotoURL().then((url) => {
-            tmpFile = App.config.dataPath + "/" + ctx.message.message_id + ".jpg";
-
-            return new Promise((resolve, reject) => {
-                const r = request(url).pipe(fs.createWriteStream(tmpFile));
-                r.on('error', (err) => {
-                    return reject(err);
-                });
-                r.on('close', () => {
-                    return resolve();
-                })
-            });
-        }).then(() => {
-            return ctx.replyWithPhoto({source: tmpFile})
-        }).then(() => {
-            return new Promise((resolve, reject) => {
-                fs.unlink(tmpFile, (err) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    return resolve();
-                });
-            })
-        }).catch((err) => {
-            ctx.reply("An error occured: " + err.toString());
-            this.log.error(err.toString());
-        });
-    }
-
-    commandVideo(ctx, duration) {
-        if (isNaN(duration) || !(duration > 0)) {
-            return ctx.reply("Please specify the duration of the video (must be greate 0)! /video <duration>");
-        }
-
-        let currentMessage = "Creating video from stream";
-        let curDots = 1;
-        let interval;
-        let statusMsg;
-
-        const stopUpdateFunction = (msg) => {
-            clearTimeout(interval);
-            return this._updateMessage(ctx, statusMsg, msg);
-        }
-
-        return ctx.reply(Tools.addDots(currentMessage, curDots)).then((msg) => {
-            statusMsg = msg;
-            const timeoutFunction = () => {
-                curDots++;
-                if (curDots > 3) {
-                    curDots = 1;
-                }
-
-                this._updateMessage(ctx, statusMsg, Tools.addDots(currentMessage, curDots)).then(() => {
-                    interval = setTimeout(timeoutFunction, 1000);
-                }, (err) => {
-                    interval = setTimeout(timeoutFunction, 1000);
-                });
-            };
-
-            interval = setTimeout(timeoutFunction, 1000);
-
-            // now create ffmpeg and process video
-            return App.modules.um3.getStreamURL();
-        }).then((streamUrl) => {
-            return new Promise((resolve, reject) => {
-                const tmpFile = App.config.dataPath + "/" + statusMsg.message_id + ".mp4";
-                const convertProc = ffmpeg(streamUrl);
-                convertProc.setFfmpegPath(ffmpegStatic.path);
-                convertProc.videoCodec('libx264');
-                convertProc.noAudio();
-                convertProc.duration(duration);
-                convertProc.on('error', (err) => {
-                    return reject(err);
-                });
-                convertProc.on('end', () => {
-                    return resolve(tmpFile);
-                });
-                convertProc.save(tmpFile);
-            }).then((filename) => {
-                return ctx.replyWithVideo({source: filename}).then(() => {
-                    return new Promise((resolve, reject) => {
-                        fs.unlink(filename, (err) => {
-                            if (err) {
-                                return reject(err);
-                            }
-
-                            return resolve();
-                        });
-                    }).then(() => {
-                        return ctx.telegram.deleteMessage(statusMsg.chat.id, statusMsg.message_id);
-                    });
-                });
-            }, (err) => {
-                return stopUpdateFunction("Error: " + err.toString());
-            })
-        });
-    }
+    }  
 
     _updateMessage(ctx, msg, text) {
         return ctx.telegram.editMessageText(
@@ -281,21 +90,4 @@ module.exports = class Telegram extends Module {
         )
     }
 
-    actionLed(ctx, state) {
-        state = state ? state.toLowerCase() : "";
-
-        ctx.editMessageReplyMarkup(null);
-
-        if (state == 'on' || state == 'off') {
-            return App.modules.um3.toggleLED(state).then(() => {
-                ctx.editMessageText('LEDs turned ' + state);
-                ctx.answerCbQuery('LEDs turned ' + state);
-            }, (err) => {
-                ctx.answerCbQuery("An error occured: " + err.toString());
-                this.log.error(err.toString());
-            });
-        } else {
-            ctx.answerCbQuery('Not supported!');
-        }
-    }
 };

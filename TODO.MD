@@ -1,1 +1,2 @@
-- [ ] Save last LED color
+- [ ] Save last LED color and reuse when LEDs turn on
+- [ ] Save watch

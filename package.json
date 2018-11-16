@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "bluebird": "^3.5.3",
+    "colorsys": "^1.0.22",
     "ffmpeg-static": "^2.3.0",
     "fluent-ffmpeg": "^2.1.2",
     "merge": "^1.2.1",
