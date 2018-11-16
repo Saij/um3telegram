@@ -7,6 +7,7 @@ const Telegraf = require('telegraf');
 const commandParts = require('telegraf-command-parts');
 const Markup = require('telegraf/markup');
 const Extra = require('telegraf/extra');
+const Tools = require('../lib/Tools');
 
 module.exports = class Telegram extends Module {
 
@@ -20,7 +21,10 @@ module.exports = class Telegram extends Module {
             this.bot.command('status', (ctx) => this._handle(ctx, this.commandStatus, true));
             this.bot.command('led', (ctx) => this._handle(ctx, this.commandLed, true));
             this.bot.command('blink', (ctx) => this._handle(ctx, this.commandBlink, true));
+            this.bot.command('color', (ctx) => this._handle(ctx, this.commandColor, true));
+
             this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, this.actionLed, true));
+            
             this.bot.start((ctx) => this._handle(ctx, this.commandStart, false));
 
             resolve(this);
@@ -116,6 +120,35 @@ module.exports = class Telegram extends Module {
                 ])
             }));
         }
+    }
+
+    commandColor(ctx, red, green, blue) {
+        const hexResult = Tools.hexToRgb(red);
+
+        if (!hexResult) {
+            red = parseInt(red);
+            green = parseInt(green);
+            blue = parseInt(blue);
+        }
+        
+        if (!hexResult && (isNaN(red) || isNaN(green) || isNaN(blue))) {
+            return ctx.reply("Please specify a hex color or three individual color values! /color RRGGBB - /color RR GG BB");
+        }
+
+        if (hexResult) {
+            red = hexResult.red;
+            green = hexResult.green;
+            blue = hexResult.blue;
+        }
+
+        const result = Tools.rgbToHsv(red, green, blue);
+
+        return App.modules.um3.color(result.hue * 100, result.saturation * 100, result.value * 100).then(() => {
+            return ctx.reply('Color changed');
+        }, (err) => {
+            this.log.error(err.toString());
+            return ctx.reply("An error occured: " + err.toString());
+        });
     }
 
     commandBlink(ctx, amount) {

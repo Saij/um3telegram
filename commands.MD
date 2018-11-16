@@ -2,8 +2,8 @@
 - [x] /led => Replies with keyboard
 - [x] /led on => Switches the LED on
 - [x] /led off => Switches the LED off
-- [ ] /color #RRGGBB => Sets LED to RGB value
-- [ ] /color RR GG BB => Sets LED to RGB value (values can be hex or dez)
+- [x] /color RRGGBB => Sets LED to RGB value (as hex)
+- [x] /color RED GREEN BLUE => Sets LED to RGB value (as dez)
 - [ ] /watch <minutes> => Sends status every X minutes
 - [ ] /stopwatch => Stops a previous active watch timer
 - [x] /blink <amount> => Blinks X times with a frequenzy of 1 Hz

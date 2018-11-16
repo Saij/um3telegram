@@ -138,6 +138,26 @@ module.exports = class UM3 extends Module {
         });
     }
 
+    color(hue, saturation, value) {
+        return new Promise((resolve, reject) => {
+            if (!this.authorized) {
+                return reject(new Error("Not authorized"));
+            }
+
+            request(Object.assign(this.baseRequestOptions, {
+                method: "PUT",
+                uri: this.config.baseUrl + "api/v1/printer/led",
+                body: {
+                    hue: hue, 
+                    saturation: saturation, 
+                    brightness: value
+                }
+            })).auth(this.config.auth.id, this.config.auth.key, false).then((response) => {
+                return resolve();
+            }, reject);
+        });
+    }
+
     blink(frequency, amount) {
         return new Promise((resolve, reject) => {
             if (!this.authorized) {
