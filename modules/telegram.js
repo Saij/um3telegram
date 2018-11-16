@@ -10,12 +10,6 @@ const Extra = require('telegraf/extra');
 
 module.exports = class Telegram extends Module {
 
-    static defaultConfig() {
-        return {
-            token: "<BOTTOKEN>"
-        }
-    }
-
     init() {
         return new Promise((resolve, reject) => {
             this.log.info("Initializing...");
