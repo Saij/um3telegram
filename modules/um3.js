@@ -4,6 +4,8 @@ const Module = require('../lib/Module');
 const App = require('../lib/App');
 const Promise = require("bluebird");
 const request = require('request-promise');
+const fs = require('fs');
+const requestOld = require('request');
 
 module.exports = class UM3 extends Module {
 
@@ -35,11 +37,11 @@ module.exports = class UM3 extends Module {
             }
             if (!this.config.auth.id || !this.config.auth.key) {
                 // Request new auth
-                authPromise = this.requestAuth();
+                authPromise = this._requestAuth();
             }
 
             authPromise.then(() => {
-                return this.checkAuth();
+                return this._checkAuth();
             }).then(() => {
                 resolve(this);
             }, (err) => {
@@ -55,7 +57,7 @@ module.exports = class UM3 extends Module {
         });
     }
 
-    requestAuth() {
+    _requestAuth() {
         return new Promise((resolve, reject) => {
             return request(Object.assign(this.baseRequestOptions, {
                 method: "POST",
@@ -75,7 +77,7 @@ module.exports = class UM3 extends Module {
         })
     }
 
-    checkAuth() {
+    _checkAuth(secondTry) {
         return new Promise((resolve, reject) => {
             let interval = setInterval(() => {
                 this.log.info("Awaiting authorization...");
@@ -92,11 +94,14 @@ module.exports = class UM3 extends Module {
                         return resolve();
                     } else if (message == "unauthorized") {
                         clearInterval(interval);
-                        return this.requestAuth().then(() => {
-                            return this.checkAuth();
-                        }).then(resolve, reject);
-                        //this.log.error("Not authorized!");
-                        //return reject(new Error("Not authorized"));
+                        if (secondTry) {
+                            this.log.error("Not authorized!");
+                            return reject(new Error("Not authorized"));
+                        } else {
+                            return this._requestAuth().then(() => {
+                                return this._checkAuth(true);
+                            }).then(resolve, reject);                            
+                        }
                     }
                 }, (err) => {
                     clearInterval(interval);
@@ -109,13 +114,20 @@ module.exports = class UM3 extends Module {
 
     getPrinter() {
         return new Promise((resolve, reject) => {
-            if (!this.authorized) {
-                return reject(new Error("Not authorized"));
-            }
-
             request(Object.assign(this.baseRequestOptions, {
                 methon: "GET",
                 uri: this.config.baseUrl + "api/v1/printer",
+            })).then((response) => {
+                return resolve(response);
+            })
+        })
+    }
+
+    getPrinterStatus() {
+        return new Promise((resolve, reject) => {
+            request(Object.assign(this.baseRequestOptions, {
+                methon: "GET",
+                uri: this.config.baseUrl + "api/v1/printer/status",
             })).then((response) => {
                 return resolve(response);
             })
@@ -215,6 +227,20 @@ module.exports = class UM3 extends Module {
                 return resolve(response.replace('?action=stream', '?action=snapshot'));
             }, reject);
         })
+    }
+
+    takePhoto(file) {
+        return this.getPhotoURL().then((url) => {
+            return new Promise((resolve, reject) => {
+                const r = requestOld(url).pipe(fs.createWriteStream(file));
+                r.on('error', (err) => {
+                    return reject(err);
+                });
+                r.on('close', () => {
+                    return resolve();
+                })
+            });
+        });
     }
 
 };

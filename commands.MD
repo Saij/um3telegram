@@ -10,3 +10,4 @@
 - [x] /start => Starts Bot and returns user ID
 - [x] /photo => Takes a photo of the camera
 - [x] /video <length> => Takes a video of X seconds and sends it
+- [ ] /timelaps <seconds> => Makes a timelaps video from the current print. Takes a picture every X seconds

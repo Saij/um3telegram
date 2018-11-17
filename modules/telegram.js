@@ -21,6 +21,7 @@ module.exports = class Telegram extends Module {
             this.bot.command('color', (ctx) => this._handle(ctx, require('./telegram/commands/color'), true));
             this.bot.command('video', (ctx) => this._handle(ctx, require('./telegram/commands/video'), true));
             this.bot.command('photo', (ctx) => this._handle(ctx, require('./telegram/commands/photo'), true));
+            this.bot.command('timelapse', (ctx) => this._handle(ctx, require('./telegram/commands/timelapse'), true));
 
             this.bot.action(/led (on|off)/, (ctx) => this._handle(ctx, require('./telegram/actions/led'), true));
             
