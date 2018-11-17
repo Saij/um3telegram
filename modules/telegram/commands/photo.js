@@ -3,7 +3,7 @@ const App = require('../../../lib/App');
 const fs = require('fs');
 const request = require('request');
 
-module.exports = function(ctx) {
+module.exports = function(ctx, caption) {
     let tmpFile;
     return App.modules.um3.getPhotoURL().then((url) => {
         tmpFile = App.config.dataPath + "/" + ctx.message.message_id + ".jpg";
@@ -18,7 +18,7 @@ module.exports = function(ctx) {
             })
         });
     }).then(() => {
-        return ctx.replyWithPhoto({source: tmpFile})
+        return ctx.replyWithPhoto({source: tmpFile}, {caption: caption});
     }).then(() => {
         return new Promise((resolve, reject) => {
             fs.unlink(tmpFile, (err) => {

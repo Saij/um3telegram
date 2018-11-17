@@ -35,20 +35,7 @@ module.exports = class UM3 extends Module {
             }
             if (!this.config.auth.id || !this.config.auth.key) {
                 // Request new auth
-                authPromise = request(Object.assign(this.baseRequestOptions, {
-                    method: "POST",
-                    uri: this.config.baseUrl + "api/v1/auth/request",
-                    formData: {
-                        application: "UM3Bot", 
-                        user: "UM3Bot"
-                    }
-                })).then((response) => {
-                    this.config.auth.id = response.id;
-                    this.config.auth.key = response.key;
-
-                    // Writing config
-                    App.saveModuleConfig(this.name, this.config);
-                }, reject);
+                authPromise = this.requestAuth();
             }
 
             authPromise.then(() => {
@@ -68,6 +55,26 @@ module.exports = class UM3 extends Module {
         });
     }
 
+    requestAuth() {
+        return new Promise((resolve, reject) => {
+            return request(Object.assign(this.baseRequestOptions, {
+                method: "POST",
+                uri: this.config.baseUrl + "api/v1/auth/request",
+                formData: {
+                    application: "UM3Bot", 
+                    user: "UM3Bot"
+                }
+            })).then((response) => {
+                this.config.auth.id = response.id;
+                this.config.auth.key = response.key;
+
+                // Writing config
+                App.saveModuleConfig(this.name, this.config);
+                return resolve();
+            }, reject);;
+        })
+    }
+
     checkAuth() {
         return new Promise((resolve, reject) => {
             let interval = setInterval(() => {
@@ -85,8 +92,11 @@ module.exports = class UM3 extends Module {
                         return resolve();
                     } else if (message == "unauthorized") {
                         clearInterval(interval);
-                        this.log.error("Not authorized!");
-                        return reject(new Error("Not authorized"));
+                        return this.requestAuth().then(() => {
+                            return this.checkAuth();
+                        }).then(resolve, reject);
+                        //this.log.error("Not authorized!");
+                        //return reject(new Error("Not authorized"));
                     }
                 }, (err) => {
                     clearInterval(interval);
@@ -97,7 +107,7 @@ module.exports = class UM3 extends Module {
         });
     }
 
-    getStatus() {
+    getPrinter() {
         return new Promise((resolve, reject) => {
             if (!this.authorized) {
                 return reject(new Error("Not authorized"));
@@ -105,7 +115,7 @@ module.exports = class UM3 extends Module {
 
             request(Object.assign(this.baseRequestOptions, {
                 methon: "GET",
-                uri: this.config.baseUrl + "api/v1/printer/status",
+                uri: this.config.baseUrl + "api/v1/printer",
             })).then((response) => {
                 return resolve(response);
             })
